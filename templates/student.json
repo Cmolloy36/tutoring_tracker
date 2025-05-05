@@ -1,0 +1,11 @@
+{
+    "name": "",
+    "email": "",
+    "parent": "",
+    "taking_SAT": true,
+    "taking_ACT": true,
+    "target_SAT": null, 
+    "target_ACT": null,
+    "active_student": true,
+    "num_sessions": 0 
+}
