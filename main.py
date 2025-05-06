@@ -5,6 +5,7 @@ import datetime
 import pathlib
 import json
 import os
+import argparse
 from enum import Enum
 
 import sys
@@ -26,6 +27,8 @@ class Student(Base):
         taking_ACT: Mapped[bool]
         target_SAT: Mapped[int] = mapped_column(nullable=True,default=None)
         target_ACT: Mapped[int] = mapped_column(nullable=True,default=None)
+        actual_SAT: Mapped[int] = mapped_column(nullable=True,default=None)
+        actual_ACT: Mapped[int] = mapped_column(nullable=True,default=None)
         active_student: Mapped[bool] = mapped_column(default=True)
         num_sessions: Mapped[int] = mapped_column(default=0)
 
@@ -52,42 +55,68 @@ class Student(Base):
         
 
 # Consider using click or argparse to specify out commands
+    
+def parser_fcn(args):
+    parser = argparse.ArgumentParser(
+                    prog='Tutoring Tracker',
+                    description='Manage students and sessions using Tutoring Tracker',
+                    epilog='Thanks for using Tutoring Tracker!')
+
+    # Functional args
+    parser.add_argument('--post_students', nargs='+', help='Add any number of student JSON files')
+    parser.add_argument('--post_sessions', nargs='+', help='Add any number of session JSON files')
+    parser.add_argument('--post_tests', nargs='+', help='Add any number of test JSON files')
+
+    parser.add_argument('--get_students', nargs='+', help='Get any number of student JSON files')
+    parser.add_argument('--get_sessions', nargs='+', help='Get any number of session JSON files')
+    parser.add_argument('--get_tests', nargs='+', help='Get any number of test JSON files')
+
+    parser.add_argument('--update_students', nargs='+', help='Update any number of student JSON files')
+    parser.add_argument('--update_sessions', nargs='+', help='Update any number of session JSON files')
+    parser.add_argument('--update_tests', nargs='+', help='Update any number of test JSON files')
+
+    parser.add_argument('--reset', help='Reset DB',action='store_true')
+
+    # Helper args
+    parser.add_argument('--limit', type=int,default=10, help='Update any number of test JSON files')
+    parser.add_argument('-v','--verbose',action='store_true', help='Perform actions in verbose mode')
+
+    return parser.parse_args()
 
 
-def main():
-    args = sys.argv
-
+def main(args):
     script_path = os.path.dirname(os.path.realpath('__file__'))
 
     engine = sa.create_engine("sqlite:///tutoring_tracker.db", echo=True)
     Base.metadata.create_all(engine)
 
     with Session(engine) as session, session.begin():
-        if len(args) < 1:
-            print("Please enter a command.")
+        # if len(args) < 1:
+        #     print("Please enter a command.")
 
-        if args[1] == "reset":
-            ans = input("Are you sure you want to reset the database?")
+        if args.reset:
+            ans = input("Are you sure you want to reset the database? ")
             if ans.lower() == 'yes':
-                statement = sa.select(Student).all()
-                objects = session.execute(statement).all()
+                statement = sa.select(Student)
+                objects = session.scalars(statement).all()
                 for obj in objects:
                     session.delete(obj)
 
 
-        elif args[1] == "add_student":
+        elif args.post_students:
             print("Adding student...") # Need to check if user exists first
-            fpth = os.path.join(script_path,"./data/student_data/",f"{args[2]}.json")
-            with open(fpth,'r') as file:
-                student_dt = json.load(file)
+            for student in args.post_students:
+                fpth = os.path.join(script_path,"./data/student_data/",f"{student}.json")
+                with open(fpth,'r') as file:
+                    student_dt = json.load(file)
 
-                insert_stmt = sa.insert(Student).values(student_dt)
-                session.execute(insert_stmt)
+                    insert_stmt = sa.insert(Student).values(student_dt)
+                    session.execute(insert_stmt)
 
-        elif args[1] == "get_students":
+        elif args.get_students:
             students = session.query(Student).all()
             for s in students:
-                print(s)
+                print(s.name)
 
         elif len(args) > 1 and args[1] == "queryconnect":
             stmt = sa.text('''SELECT * FROM students
@@ -98,9 +127,7 @@ def main():
 
         session.commit()
 
-         
-
-
-
 if __name__ == "__main__":
-    main()
+    args = parser_fcn(sys.argv[1:])
+    print(args)
+    main(args)
