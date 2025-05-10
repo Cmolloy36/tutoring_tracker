@@ -1,3 +1,5 @@
 .venv/
 *.db
 data/student_data/*
+data/session_data/*
+data/test_data/*
