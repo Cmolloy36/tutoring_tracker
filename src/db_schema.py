@@ -8,10 +8,17 @@ class Student(Base):
     __tablename__ = 'students_table'
 
     tutoring_sessions = relationship(
-        "TutoringSession", backref=backref("students", cascade="all, delete-orphan")
+        "TutoringSession",
+        backref="student",
+        cascade="all, delete-orphan",
+        single_parent=True  # Ensures a session can belong to only one student
     )
+
     tests = relationship(
-        "Test", backref=backref("students", cascade="all, delete-orphan")
+        "Test",
+        backref="student",
+        cascade="all, delete-orphan",
+        single_parent=True  # Ensures a test can belong to only one student
     )
 
     # This creates an __init__ method with each param as an optional input
@@ -32,8 +39,8 @@ class Student(Base):
 
     def __repr__(self) -> str:
         return (
-    f"Student(id={self.id!r}, created_at={self.created_at}, updated_at={self.updated_at}, "
-    f"name={self.name!r}, email={self.email!r}, parent={self.parent!r}, "
+    f"Student(id={self.id!r}, name={self.name!r}, email={self.email!r}, parent={self.parent!r}, "
+    f"created_at={self.created_at}, updated_at={self.updated_at}, "
     f"taking_SAT={self.taking_SAT!r}, taking_ACT={self.taking_ACT!r}, "
     f"target_SAT={self.target_SAT!r}, target_ACT={self.target_ACT!r}, "
     f"actual_SAT={self.actual_SAT!r}, actual_ACT={self.actual_ACT!r}, "
@@ -47,13 +54,16 @@ class TutoringSession(Base):
     id: Mapped[int] = mapped_column(sa.Sequence('id_seq'), primary_key=True)
     created_at = sa.Column(sa.TIMESTAMP,default=sa.func.now())
     updated_at = sa.Column(sa.TIMESTAMP,default=sa.func.now())
+    session_notes: Mapped[str] = mapped_column()
     fk_students: Mapped[int] = mapped_column(sa.ForeignKey(Student.id))
     # fk_test: Mapped[int] = mapped_column(sa.ForeignKey(Test.id))
 
     def __repr__(self) -> str:
         return (
-    f"Session(id={self.id!r}, created_at={self.created_at}, updated_at={self.updated_at}, student_id={self.fk_students!r}"
-)
+    f"Session(id={self.id!r}, student_id={self.fk_students!r}, "
+    f"created_at={self.created_at}, updated_at={self.updated_at}, "
+    f"session_notes={self.session_notes}"
+    )
         
 class Test(Base):
     __tablename__ = 'tests_table'
@@ -62,12 +72,13 @@ class Test(Base):
     id: Mapped[int] = mapped_column(sa.Sequence('id_seq'), primary_key=True)
     created_at = sa.Column(sa.TIMESTAMP,default=sa.func.now())
     updated_at = sa.Column(sa.TIMESTAMP,default=sa.func.now())
+    # taken_at = sa.Column(sa.TIMESTAMP)
     test_type: Mapped[str] = mapped_column()
     is_practice_test: Mapped[bool] = sa.Column(sa.BOOLEAN,default=True,nullable=False)
     fk_students: Mapped[int] = mapped_column(sa.ForeignKey(Student.id))
-    # fk_test: Mapped[int] = mapped_column(sa.ForeignKey(Test.id))
 
     def __repr__(self) -> str:
         return (
-    f"Session(id={self.id!r}, created_at={self.created_at}, updated_at={self.updated_at}, student_id={self.fk_students!r}"
-)
+    f"Session(id={self.id!r}, student_id={self.fk_students!r}, "
+    f"test_type={self.test_type!r}, practice_test={self.is_practice_test!r}"
+    )
