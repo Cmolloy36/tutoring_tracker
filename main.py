@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 import os
 import argparse
 import sys
+import json
 
 import command_queries
-from src.db_schema import Base, Student, Test, TutoringSession
+from export_json import AlchemyEncoder
+from src.db_schema import Base, Student, Test, SAT, ACT, PSAT, TutoringSession
     
 def parser_fcn(args):
     parser = argparse.ArgumentParser(
@@ -28,7 +30,8 @@ def parser_fcn(args):
     post_element_parser.add_argument('--name', nargs=1, help='name of user to post elements to. encapsulate in ""')
     post_element_parser.add_argument('--files', nargs='+', help='name(s) of file(s) to post') #how should I name the files?
 
-    get_user_parser = subparsers.add_parser('get_user', help='post user data to DB')
+    # GET
+    get_user_parser = subparsers.add_parser('get_user', help='get user data from DB') #
     get_user_parser.add_argument('--target', choices=['student', 'tutor'])
     get_user_parser.add_argument('--name', nargs='*', help='name(s) of user(s) to get. encapsulate in ""')
     
@@ -36,6 +39,7 @@ def parser_fcn(args):
     get_element_parser.add_argument('--target', choices=['sessions', 'tests', 'ACT', 'SAT', 'PSAT'])
     get_element_parser.add_argument('--name', nargs='*', help='name(s) of user(s) to get elements from. encapsulate in ""')
 
+    # PUT
     update_user_parser = subparsers.add_parser('update_user', help='Update existing data')
     update_user_parser.add_argument('--target', choices=['student', 'tutor'])
     update_user_parser.add_argument('--name', nargs='+', help='names of users to update. encapsulate each in ""')
@@ -43,6 +47,7 @@ def parser_fcn(args):
     update_element_parser = subparsers.add_parser('update_element', help='Update element data in DB') # is this useful? when would I use this?
     update_element_parser.add_argument('--target', choices=['sessions', 'tests'])
 
+    # DELETE
     delete_user_parser = subparsers.add_parser('delete_user', help='Update existing data')
     delete_user_parser.add_argument('--name', nargs='+', help='names of users to delete. encapsulate each in ""')
     
@@ -57,8 +62,8 @@ def parser_fcn(args):
     # Optional args
     parser.add_argument('-v','--verbose',action='store_true', help='Perform actions in verbose mode')
     parser.add_argument('--limit', type=int,default=10, help='Set maximum number of results')
+    parser.add_argument('-e', '--export',action='store_true', help='export queries recieved to the specified path')
     
-
     return parser.parse_args()
 
 
@@ -75,8 +80,7 @@ def main(args):
     with Session(engine) as session, session.begin():
         # if len(args) < 1:
         #     print("Please enter a command.")
-        session.execute(sa.text("DROP TABLE IF EXISTS _alembic_tmp_sessions_table"))
-        session.execute(sa.text("DROP TABLE IF EXISTS _alembic_tmp_tests_table"))
+        # session.execute(sa.text("DROP TABLE IF EXISTS _alembic_tmp_sessions_table"))
 
         if args.command == 'reset': # consider moving to command_queries.py
             ans = input("Are you sure you want to reset the database? ")
@@ -88,19 +92,19 @@ def main(args):
 
         elif args.command == 'post_user':
             if args.target.lower() == 'student' or 'tutor':
-                student_dt = command_queries.post_users(session, script_path, args)
+                pre_json_payload = command_queries.post_users(session, script_path, args)
             else:
                 print('invalid user element')
             
         elif args.command == 'post_element':
             if args.target.lower() == 'tests' or 'sat' or 'act' or 'psat' or 'sessions':
-                session_dt = command_queries.post_elements(session, script_path, args)
+                pre_json_payload = command_queries.post_elements(session, script_path, args)
             else:
                 print('invalid element')
 
         elif args.command == 'get_user': # use command_queries.py
             if args.target == 'student':
-                session_dt = command_queries.get_students(session, args)
+                pre_json_payload = command_queries.get_students(session, args)
             # elif args.target == 'tutor':
             #     test_dt = command_queries.get_tutors(session, args)
             else:
@@ -108,23 +112,26 @@ def main(args):
 
         elif args.command == 'get_element': # use command_queries.py
             if args.target.lower() == 'tests' or 'sat' or 'act' or 'psat' or 'sessions':
-                session_dt = command_queries.get_elements(session, args)
+                pre_json_payload = command_queries.get_elements(session, args)
             else:
                 print('invalid element')
 
         elif args.command == 'delete_user': # use command_queries.py
             if (args.name != [] or None):
-                user_dt = command_queries.delete_users(session, args)
+                pre_json_payload = command_queries.delete_users(session, args)
             else:
                 print('invalid element')
 
         elif args.command == 'delete_element': # use command_queries.py
             if (args.files != [] or None) and (args.target.lower() == 'tests' or 'sat' or 'act' or 'psat' or 'sessions'):
-                session_dt = command_queries.delete_elements(session, script_path, args)
+                pre_json_payload = command_queries.delete_elements(session, script_path, args)
             else:
                 print('invalid element')
 
-        session.commit()
+        if args.export:
+            json_payload = json.dumps(pre_json_payload, cls=AlchemyEncoder)
+            if args.verbose:
+                print(json_payload) # do what with it? export to csv or something?
 
 if __name__ == "__main__":
     args = parser_fcn(sys.argv[1:])

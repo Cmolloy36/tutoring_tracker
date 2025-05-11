@@ -85,7 +85,7 @@ class Test(Base):
 
     def __repr__(self) -> str:
         return (
-    f"Session(id={self.id!r}, student_id={self.fk_students!r}, date_completed={self.date_completed}, "
+    f"Test(id={self.id!r}, student_id={self.fk_students!r}, date_completed={self.date_completed}, "
     f"test_type={self.test_type!r}, practice_test={self.is_practice_test!r}")
 
 class SAT(Test):
@@ -102,9 +102,9 @@ class SAT(Test):
 
     def __repr__(self) -> str:
         return (
-    f"Session(id={self.id!r}, student_id={self.fk_students!r}, date_completed={self.date_completed}, "
+    f"SAT(id={self.id!r}, student_id={self.fk_students!r}, date_completed={self.date_completed}, "
     f"test_type={self.test_type!r}, practice_test={self.is_practice_test!r}, "
-    f"english_score={self.english_score!r}, math_score={self.math_score!r}, ")
+    f"english_score={self.english_score!r}, math_score={self.math_score!r}")
 
 class PSAT(Test):
     __tablename__ = 'PSAT_table'
@@ -120,7 +120,7 @@ class PSAT(Test):
 
     def __repr__(self) -> str:
         return (
-    f"Session(id={self.id!r}, student_id={self.fk_students!r}, date_completed={self.date_completed}, "
+    f"PSAT(id={self.id!r}, student_id={self.fk_students!r}, date_completed={self.date_completed}, "
     f"test_type={self.test_type!r}, practice_test={self.is_practice_test!r}, "
     f"english_score={self.english_score!r}, math_score={self.math_score!r}")
 
@@ -140,7 +140,7 @@ class ACT(Test):
 
     def __repr__(self) -> str:
         return (
-    f"Session(id={self.id!r}, student_id={self.fk_students!r}, date_completed={self.date_completed}, "
+    f"ACT(id={self.id!r}, student_id={self.fk_students!r}, date_completed={self.date_completed}, "
     f"test_type={self.test_type!r}, practice_test={self.is_practice_test!r}, "
     f"english_score={self.english_score!r}, math_score={self.math_score!r}, "
-    f"reading_score={self.reading_score!r}, science_score={self.science_score!r}, ")
+    f"reading_score={self.reading_score!r}, science_score={self.science_score!r})")
