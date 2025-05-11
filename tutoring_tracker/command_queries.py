@@ -4,7 +4,7 @@ import os
 import json
 import datetime
 
-import helper_queries
+from . import helper_queries
 from src.db_schema import Student, Test, TutoringSession, SAT, PSAT, ACT 
 
 def post_users(session: Session, script_path, args):
@@ -30,7 +30,17 @@ def post_users(session: Session, script_path, args):
             # session.add(test_obj)
     
     session.add_all(element_list)
-    return element_list
+
+    session.flush()
+
+    inserted_ids = [e.id for e in element_list]
+    rows = session.execute(
+        sa.select(model_class).where(model_class.id.in_(inserted_ids))
+    ).all()
+
+    results = [tuple(row) for row in rows]
+
+    return results
 
 def post_elements(session: Session, script_path, args):
     student_id = helper_queries.get_student_ids(session, args)
@@ -55,19 +65,37 @@ def post_elements(session: Session, script_path, args):
             # session.add(test_obj)
     
     session.add_all(element_list)
+    session.flush() 
+    
+    inserted_ids = [e.id for e in element_list]
+    rows = session.execute(
+        sa.select(model_class).where(model_class.id.in_(inserted_ids))
+    ).all()
 
-    return element_list
+    results = [tuple(row) for row in rows]
 
-def get_students(session: Session, args):
+    return results
+
+def get_users(session: Session, args):
+    # model_class = {'Student': Student, "Tutor": Tutor}.get(args.target) # replace once tutor db is added
+    model_class = {'Student': Student}.get(args.target)
+
     if args.name == None:
-        students = session.execute(sa.select(Student).limit(args.limit)).all() # support "order by" functionality from CLI?
+        users = session.execute(sa.select(model_class).limit(args.limit)).all() # support "order by" functionality from CLI?
     else:
-        student_names = args.name
-        students = session.execute(sa.select(Student).where(Student.name.in_(student_names))).all()
+        user_names = args.name
+        users = session.execute(sa.select(model_class).where(model_class.name.in_(user_names))).all()
 
-    for s in students: # change to return data, print formatted returned data
-        print(s)
-    return students
+    if len(users) == 0:
+        print("no users found")
+
+    # for u in users: # change to return data, print formatted returned data
+    #     print(u)
+
+    # results = [tuple(row) for row in users]
+
+    # return results
+    return users
 
 def get_elements(session: Session, args):
     model_class = {"ACT": ACT, "SAT": SAT, "PSAT": PSAT, "sessions": TutoringSession, 'tests': Test}.get(args.target) # consider moving to main function
@@ -83,8 +111,12 @@ def get_elements(session: Session, args):
     if len(elements) == 0:
         print("no elements found")
 
-    for e in elements: # change to return data, print formatted returned data
-        print(e)
+    # for e in elements: # change to return data, print formatted returned data
+    #     print(e)
+
+    # results = [tuple(row) for row in elements]
+
+    # return results
     return elements
 
 def delete_users(session: Session, args):

@@ -6,8 +6,8 @@ import argparse
 import sys
 import json
 
-import command_queries
-from export_json import AlchemyEncoder
+from . import command_queries
+from .export_json import serialize_model
 from src.db_schema import Base, Student, Test, SAT, ACT, PSAT, TutoringSession
     
 def parser_fcn(args):
@@ -22,42 +22,42 @@ def parser_fcn(args):
 
     # POST
     post_user_parser = subparsers.add_parser('post_user', help='Post user data to DB')
-    post_user_parser.add_argument('--target', choices=['student', 'tutor']) #singular or plural?
-    post_user_parser.add_argument('--name', nargs='+', help='JSON files to add')
+    post_user_parser.add_argument('-t','--target', choices=['student', 'tutor']) #singular or plural?
+    post_user_parser.add_argument('-n','--name', nargs='+', help='name(s) of user(s) to add')
 
     post_element_parser = subparsers.add_parser('post_element', help='Post element data to DB')
-    post_element_parser.add_argument('--target', choices=['sessions', 'ACT', 'SAT', 'PSAT'])
-    post_element_parser.add_argument('--name', nargs=1, help='name of user to post elements to. encapsulate in ""')
-    post_element_parser.add_argument('--files', nargs='+', help='name(s) of file(s) to post') #how should I name the files?
+    post_element_parser.add_argument('-t','--target', choices=['sessions', 'ACT', 'SAT', 'PSAT'])
+    post_element_parser.add_argument('-n','--name', nargs=1, help='name of user to post elements to. encapsulate in ""')
+    post_element_parser.add_argument('-f','--files', nargs='+', help='name(s) of file(s) to post') #how should I name the files?
 
     # GET
-    get_user_parser = subparsers.add_parser('get_user', help='get user data from DB') #
-    get_user_parser.add_argument('--target', choices=['student', 'tutor'])
-    get_user_parser.add_argument('--name', nargs='*', help='name(s) of user(s) to get. encapsulate in ""')
+    get_user_parser = subparsers.add_parser('get_user', help='get user data from DB') # specify number for each input
+    get_user_parser.add_argument('-t','--target', choices=['student', 'tutor'])
+    get_user_parser.add_argument('-n','--name', nargs='*', help='name(s) of user(s) to get. encapsulate in ""')
     
     get_element_parser = subparsers.add_parser('get_element', help='Get element data from DB')
-    get_element_parser.add_argument('--target', choices=['sessions', 'tests', 'ACT', 'SAT', 'PSAT'])
-    get_element_parser.add_argument('--name', nargs='*', help='name(s) of user(s) to get elements from. encapsulate in ""')
+    get_element_parser.add_argument('-t','--target', choices=['sessions', 'tests', 'ACT', 'SAT', 'PSAT'])
+    get_element_parser.add_argument('-n','--name', nargs='*', help='name(s) of user(s) to get elements from. encapsulate in ""')
 
     # PUT
     update_user_parser = subparsers.add_parser('update_user', help='Update existing data')
-    update_user_parser.add_argument('--target', choices=['student', 'tutor'])
-    update_user_parser.add_argument('--name', nargs='+', help='names of users to update. encapsulate each in ""')
+    update_user_parser.add_argument('-t','--target', choices=['student', 'tutor'])
+    update_user_parser.add_argument('-n','--name', nargs='+', help='names of users to update. encapsulate each in ""')
 
     update_element_parser = subparsers.add_parser('update_element', help='Update element data in DB') # is this useful? when would I use this?
-    update_element_parser.add_argument('--target', choices=['sessions', 'tests'])
+    update_element_parser.add_argument('-t','--target', choices=['sessions', 'tests'])
 
     # DELETE
     delete_user_parser = subparsers.add_parser('delete_user', help='Update existing data')
-    delete_user_parser.add_argument('--name', nargs='+', help='names of users to delete. encapsulate each in ""')
+    delete_user_parser.add_argument('-n','--name', nargs='+', help='names of users to delete. encapsulate each in ""')
     
     delete_element_parser = subparsers.add_parser('delete_element', help='Update existing data')
-    delete_element_parser.add_argument('--target', choices=['sessions', 'tests', 'ACT', 'SAT', 'PSAT'])
-    delete_element_parser.add_argument('--name', nargs=1, help='name of user to delete elements from. encapsulate in ""') # the existence of this indicates I should name files with student name and date
-    delete_element_parser.add_argument('--files', nargs='+', help='name(s) of file(s) to delete') #how should I name the files?
+    delete_element_parser.add_argument('-t','--target', choices=['sessions', 'tests', 'ACT', 'SAT', 'PSAT'])
+    delete_element_parser.add_argument('-n','--name', nargs=1, help='name of user to delete elements from. encapsulate in ""') # the existence of this indicates I should name files with student name and date
+    delete_element_parser.add_argument('-f','--files', nargs='+', help='name(s) of file(s) to delete') #how should I name the files?
 
     reset_parser = subparsers.add_parser('reset', help='Reset DB')
-    # reset_parser.add_argument('--name', nargs='+', help='names of elements to reset')
+    # reset_parser.add_argument('-n','--name', nargs='+', help='names of elements to reset')
 
     # Optional args
     parser.add_argument('-v','--verbose',action='store_true', help='Perform actions in verbose mode')
@@ -129,9 +129,13 @@ def main(args):
                 print('invalid element')
 
         if args.export:
-            json_payload = json.dumps(pre_json_payload, cls=AlchemyEncoder)
-            if args.verbose:
-                print(json_payload) # do what with it? export to csv or something?
+            # clean this up
+            model_instances = [row[0] for row in pre_json_payload]
+            serialized = [serialize_model(obj) for obj in model_instances]
+            json_payload_str = json.dumps(serialized, default=str)
+            json_payload = json_payload_str.encode()
+
+            print(json_payload) # do what with it? export to csv or something?
 
 if __name__ == "__main__":
     args = parser_fcn(sys.argv[1:])
